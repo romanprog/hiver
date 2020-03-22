@@ -1,0 +1,6 @@
+version: '3.6'
+services:
+  redis:
+    image: "{{ .image }}:{{ .tag }}"
+    deploy:
+      replicas: {{ .values.replicas.count }}

@@ -1,0 +1,37 @@
+registries:
+  - url: "docker.io" # docker hub registry
+    user: "artiloop"
+    pass: {{ env DOCKER_SECRET }}
+stack: teststack
+
+packages:
+  test_redis:
+    dir: "packages/test_redis/"
+    installed: "true"
+    image: "artiloop/redis_test"
+    tag: "0.1.32"
+    build:
+      type: dockerfile
+      dir: builds/test_redis
+      check: true
+    values:
+      replicas: 
+        count: 2
+  # test_redis1:
+  #   dir: "packages/test_redis/"
+  #   installed: "false"
+  #   image: "redis"
+  #   tag: "6.0-rc"
+  #   values:
+  #     replicas: 
+  #       count: 1
+  # env-printer1:
+  #   installed: "false"
+  #   dir: "packages/env-printer1"
+  #   build: "false"
+  #   values:
+  #     tag: "v0.assa"
+  #     image: "test3sdasdasdasd"
+  #     env:
+  #       test1: "sdasd vironment var"
+
