@@ -1,0 +1,14 @@
+version: '3.6'
+services:
+  hinfo2:
+    image: {{ .image }}:{{ .tag }}
+    deploy:
+      replicas: {{ .values.replicas.count }}
+    ports:
+      - target: 80 
+        published: {{ .values.expose_port }}
+        protocol: tcp
+        mode: host
+    environment:
+      {{- range $key, $value := .commons.env }}
+      - {{ $key }}="{{ $value }}"{{ end }}

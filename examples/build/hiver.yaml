@@ -1,0 +1,45 @@
+stack: mystack
+
+registries:
+  url: registry.docker.io
+  user: artiloop
+  pass: {{ env DOCKER_PASS }}
+
+packages:
+  hinfo1:
+    dir: packages/hinfo1/
+    installed: true
+    image: artiloop/hinfo1
+    tag: {{ .commons.versions.hinfo1 }}
+    build:
+      type: dockerfile
+      dir: builds/hinfo1
+      check: true
+    values:
+      expose_port: 80
+      replicas: 
+        count: 1
+
+  hinfo2:
+    dir: packages/hinfo2/
+    installed: true
+    image: artiloop/hinfo2
+    tag: {{ .commons.versions.hinfo2 }}
+    build:
+      type: script
+      dir: builds/hinfo2
+      script: build.sh
+      args: '"Print this test"'
+    values:
+      expose_port: 81
+      replicas: 
+        count: 1
+
+  heloworld:
+    dir: packages/heloworld/
+    installed: true
+    tag: {{ .commons.versions.heloworld }}
+    values:
+      expose_port: 82
+      replicas: 
+        count: 1

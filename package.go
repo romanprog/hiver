@@ -7,44 +7,51 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
+
+	//	"strconv"
 	"text/template"
 
 	"gopkg.in/yaml.v2"
 )
 
+// State files names.
 type SwarmPackageState struct {
 	ManifestFile    string
 	ManifestTmpFile string
 }
 
+// Package build speck.
 type SwarmPackageBuildSpec struct {
-	Enabled bool
-	Dir     string `yaml:"dir,omitempty"`
-	Type    string `yaml:"type,omitempty"`
-	Script  string `yaml:"script,omitempty"`
-	Args    string `yaml:"args,omitempty"`
-	Check   bool   `yaml:check,omitempty`
-	Image   string
-	Tag     string
+	Enabled   bool
+	Dir       string `yaml:"dir,omitempty"`
+	Type      string `yaml:"type,omitempty"`
+	Script    string `yaml:"script,omitempty"`
+	Args      string `yaml:"args,omitempty"`
+	Check     bool   `yaml:check,omitempty`
+	PushImage bool   `yaml:push,omitempty`
+	Image     string
+	Tag       string
 }
 
+// Main package speck.
 type SwarmPackage struct {
-	configData     map[string]interface{}
-	stack          string
-	name           string
-	dir            string
-	readyForDeploy bool
-	manifest       bytes.Buffer
-	installed      bool
-	build          SwarmPackageBuildSpec
-	state          SwarmPackageState
+	configData     map[string]interface{} // Reference to parsed yaml struct.
+	stack          string                 // Stack name.
+	name           string                 // Package name.
+	dir            string                 // Path to package.
+	readyForDeploy bool                   // Package is parsed and inited.
+	manifest       bytes.Buffer           // Manifest data (after templating).
+	installed      bool                   // Option 'intalled'.
+	build          SwarmPackageBuildSpec  // Buld spec.
+	state          SwarmPackageState      // State files.
 }
 
+// Parse and check build data.
+// Create build spec.
 func ParseBuild(b interface{}, spec *SwarmPackage) {
 
 	if b == nil {
-		log.Notice("Build spec is empty.")
+		log.Debugf("Build spec is empty for package '%s'.", spec.name)
 		return
 	}
 	yamlData, err := yaml.Marshal(b)
@@ -62,15 +69,15 @@ func ParseBuild(b interface{}, spec *SwarmPackage) {
 		if spec.configData["tag"] == nil {
 			log.Fatalf("For build type 'dockerfile' field 'packages.%s.tag' is requred.", spec.Name())
 		}
-		spec.build.Image = spec.configData["image"].(string)
-		spec.build.Tag = spec.configData["tag"].(string)
 	case "script":
-		if spec.configData["script"] == nil {
-			log.Fatalf("For build type 'dockerfile' field 'packages.%s.build.script' is requred.", spec.Name())
+		if spec.build.Script == "" {
+			log.Fatalf("For build type 'script' field 'packages.%s.build.script' is requred.", spec.Name())
 		}
 	default:
-		log.Panicf("Wrong build type: %s, suppurted only 'dockerfile|script' ")
+		log.Fatalf("Wrong build type '%s', suppurted only 'dockerfile|script'", spec.build.Type)
 	}
+	spec.build.Image, _ = spec.configData["image"].(string)
+	spec.build.Tag, _ = spec.configData["tag"].(string)
 	if spec.configData["dir"] == nil {
 		log.Fatalf("For build option, field 'packages.%s.build.dir' is requred.", spec.Name())
 	}
@@ -78,38 +85,45 @@ func ParseBuild(b interface{}, spec *SwarmPackage) {
 	return
 }
 
+// Create, check and init package speck.
 func NewSwarmPackage(hconf *hiverSpec, name string) *SwarmPackage {
 	pkg := new(SwarmPackage)
 	log.Debugf("Initing swarm package '%s', check configuration.", name)
-	if _, ok := hconf.Packages[name]; ok {
-		pkg.configData = hconf.Packages[name]
-		pkg.configData["commons"] = hconf.Commons
-		pkg.name = name
-		pkg.state.ManifestFile = filepath.Join(".", globalConfig.DotDir, "packages", name+".yaml")
-		pkg.state.ManifestTmpFile = filepath.Join(".", globalConfig.DotDir, "packages", "_tmp_"+name+".yaml")
-		err := os.MkdirAll(filepath.Dir(pkg.state.ManifestFile), os.ModePerm)
-		checkErr(err)
-		err = os.MkdirAll(filepath.Dir(pkg.state.ManifestTmpFile), os.ModePerm)
-		checkErr(err)
-
-		pkg.stack = hconf.StackName
-
-		installed, err := strconv.ParseBool(pkg.configData["installed"].(string))
-		if err != nil {
-			log.Fatal("Field 'installed' is not set, but required.")
-		}
-		pkg.installed = installed
-		pkgdir, ok := pkg.configData["dir"].(string)
-		if !ok {
-			log.Fatal("Field 'dir' is not set, but required.")
-		}
-		ParseBuild(pkg.configData["build"], pkg)
-		pkg.dir = pkgdir
-		log.Debugf("Package '%s' inited.", name)
-		return pkg
+	// Check if data for this name exists in main hiver manifest.
+	if _, ok := hconf.Packages[name]; !ok {
+		log.Fatalf("Can't create service unit. Service %s not found in hstack manifest.", name)
 	}
-	log.Panicf("Can't create service unit. Service %s not found in hstack manifest.", name)
-	return nil
+
+	pkg.configData = hconf.Packages[name]
+	pkg.configData["commons"] = hconf.Commons
+	pkg.name = name
+	pkg.state.ManifestFile = filepath.Join(".", globalConfig.DotDir, "packages", name+".yaml")
+	pkg.state.ManifestTmpFile = filepath.Join(".", globalConfig.DotDir, "packages", "_tmp_"+name+".yaml")
+	err := os.MkdirAll(filepath.Dir(pkg.state.ManifestFile), os.ModePerm)
+	checkErr(err)
+	err = os.MkdirAll(filepath.Dir(pkg.state.ManifestTmpFile), os.ModePerm)
+	checkErr(err)
+
+	pkg.stack = hconf.StackName
+
+	ok := false
+	pkg.installed, ok = pkg.configData["installed"].(bool)
+	if !ok {
+		log.Fatal("Field 'installed' is not set, but required.")
+	}
+
+	pkgdir, ok := pkg.configData["dir"].(string)
+	if !ok {
+		log.Fatal("Field 'dir' is not set, but required.")
+	}
+
+	// Parse build data.
+	ParseBuild(pkg.configData["build"], pkg)
+
+	pkg.dir = pkgdir
+	log.Debugf("Package '%s' inited.", name)
+	return pkg
+
 }
 
 func buildSwarmPackage(serviceName string, hstack *hiverSpec) {
@@ -181,12 +195,27 @@ func (pkg *SwarmPackage) Manifest() string {
 
 }
 
-func (pkg *SwarmPackage) BuildDockerfile() {
-
+func (pkg *SwarmPackage) Build() {
+	if !pkg.installed {
+		log.Debug("Skip build for '%s', installed: false", pkg.name)
+		return
+	}
 	if !pkg.build.Enabled {
 		log.Debug("Skip build for package '%s'", pkg.name)
 		return
 	}
+	switch pkg.build.Type {
+	case "dockerfile":
+		pkgBuildDockerfile(pkg)
+	case "script":
+		pkhBuildScript(pkg)
+	default:
+		return
+	}
+}
+
+func pkgBuildDockerfile(pkg *SwarmPackage) {
+
 	// Check if image exists in registry. (To skip extra builds)
 	if pkg.build.Check {
 		checkCommand := fmt.Sprintf("docker pull %s:%s", pkg.build.Image, pkg.build.Tag)
@@ -201,19 +230,59 @@ func (pkg *SwarmPackage) BuildDockerfile() {
 			return
 		}
 	}
+
 	if globalConfig.DryRun {
 		log.Noticef("Dry run: build image: '%s:%s', build dir: '%s'", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
 		return
 	}
 	// Build image.
 	buildCommand := fmt.Sprintf("docker build -t %s:%s %s", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
-	log.Infof("Building dockerfile '%s'", pkg.Name())
+	log.Infof("Building package %s (dockerfile)", pkg.Name())
 	err := commandExec(buildCommand)
 	checkErr(err)
-
+	if pkg.build.PushImage {
+		return
+	}
+	if globalConfig.DryRun {
+		log.Noticef("Dry run: push image: '%s:%s'", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
+		return
+	}
 	// Push to registry.
 	buildCommand = fmt.Sprintf("docker push %s:%s", pkg.build.Image, pkg.build.Tag)
 	log.Infof("Pushing docker image '%s:%s'", pkg.build.Image, pkg.build.Tag)
+	err = commandExec(buildCommand)
+	checkErr(err)
+
+}
+
+func isFile(fname string) error {
+	info, err := os.Stat(fname)
+
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("'%s' is a directoty", fname)
+	}
+
+	return nil
+}
+
+func pkhBuildScript(pkg *SwarmPackage) {
+
+	scriptFilename := filepath.Join(pkg.build.Dir, pkg.build.Script)
+	err := isFile(scriptFilename)
+	checkErr(err)
+
+	// Build image.
+	buildCommand := fmt.Sprintf("cd %s && ./%s %s %s %s", pkg.build.Dir, pkg.build.Script, pkg.build.Image, pkg.build.Tag, pkg.build.Args)
+	// log.Debugf("Build command: \n%s", buildCommand)
+	if globalConfig.DryRun {
+		log.Noticef("Dry run: build script: '%s', build dir: '%s'", pkg.build.Script, pkg.build.Dir)
+		log.Debugf("Build command: \n%s", buildCommand)
+		return
+	}
+	log.Infof("Building packege '%s' (script run)", pkg.Name())
 	err = commandExec(buildCommand)
 	checkErr(err)
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	//	"bytes"
 	"crypto/md5"
 	"fmt"
 	"io"
@@ -14,6 +13,7 @@ import (
 var funcMap template.FuncMap
 var tmplTargetFileName string
 
+// Functions for use in the template.
 func TmplFunctionsMap() template.FuncMap {
 	funcMap := template.FuncMap{
 		"envOrDef": envOrDefault,
@@ -24,22 +24,26 @@ func TmplFunctionsMap() template.FuncMap {
 	return funcMap
 }
 
-func TmplApply(filename string, templated io.Writer, commonTmpl interface{}) error {
-
+// Apply template
+func TmplApply(filename string, result io.Writer, data interface{}) error {
+	
+	// Set curent target file name for function fileMD5
 	tmplTargetFileName = filename
-	manifestData, err := ioutil.ReadFile(filename)
+	// Read template from file.
+	tmplData, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	tmpl, err := template.New("main").Funcs(TmplFunctionsMap()).Option("missingkey=error").Parse(string(manifestData))
+	// Parse template.
+	tmpl, err := template.New("main").Funcs(TmplFunctionsMap()).Option("missingkey=error").Parse(string(tmplData))
 	if err != nil {
 		return err
 	}
-	err = tmpl.Execute(templated, &commonTmpl)
+	// Apply data to template.
+	err = tmpl.Execute(result, &data)
 	if err != nil {
 		return err
 	}
-	//log.Error(templated.String())
 	return nil
 }
 
@@ -54,6 +58,7 @@ func envOrDefault(key string, defaultVal string) (string, error) {
 	return defaultVal, nil
 }
 
+// Function for template. Use: {{ env }}
 // Get env, return error if env variable is not exist.
 func env(key string) (string, error) {
 	if envVal, ok := os.LookupEnv(key); ok {
@@ -64,6 +69,9 @@ func env(key string) (string, error) {
 	return string(""), fmt.Errorf("Error. ENV variable %s undefined but needed.", key)
 }
 
+// Function for template. Use: {{ fileMD5 "filename" size }}
+// The path to the file should be relative to the template in which the function was called.
+// Return file md5 checksum trancated to size bytes.
 func fileMD5(filename string, sz int) (string, error) {
 
 	fn := filepath.Join(filepath.Dir(tmplTargetFileName), filename)
@@ -79,6 +87,8 @@ func fileMD5(filename string, sz int) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)[0:sz]), nil
 }
 
+// Function for template. Use: {{ stringMD5 "string" size }}
+// Return string md5 checksum trancated to size bytes.
 func stringMD5(data string, sz int) (string, error) {
 
 	h := md5.New()

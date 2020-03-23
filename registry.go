@@ -3,18 +3,19 @@ package main
 import (
 	"fmt"
 )
-
+// Registri data for auth. 
 type RegisrySpec struct {
 	Url  string `yaml:"url"`
 	User string `yaml:"user"`
 	Pass string `yaml:"pass"`
 }
-
+// Auth registry. Use docker login command.
 func (r *RegisrySpec) Auth() {
 	err := commandExec(fmt.Sprintf("docker login %s -u %s -p %s", r.Url, r.User, r.Pass), r.Pass)
 	checkErr(err)
 }
 
+// Auth list of registries.
 func authRegistries(spec *hiverSpec) {
 	log.Infof("Processing auth registries list.")
 	if len(spec.Registries) == 0 {

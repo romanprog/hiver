@@ -1,0 +1,11 @@
+version: '3.6'
+services:
+  heloworld:
+    image: crccheck/hello-world:{{ .tag }}
+    deploy:
+      replicas: {{ .values.replicas.count }}
+    ports:
+      - target: 8000
+        published: {{ .values.expose_port }}
+        protocol: tcp
+        mode: host

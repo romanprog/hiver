@@ -1,0 +1,11 @@
+stack: mystack
+
+packages:
+  heloworld:
+    dir: heloworld/
+    installed: true
+    tag: latest
+    values:
+      expose_port: 80
+      replicas: 
+        count: 1

@@ -1,0 +1,21 @@
+stack: mystack
+
+packages:
+  hinfo1:
+    dir: hinfo1/
+    installed: true
+    image: artiloop/hinfo1
+    tag: latest
+    values:
+      expose_port: 80
+      replicas: 
+        count: {{ .commons.repl.hinfo1 }}
+  hinfo2:
+    dir: hinfo2/
+    installed: true
+    image: artiloop/hinfo2
+    tag: latest
+    values:
+      expose_port: 81
+      replicas: 
+        count: {{ .commons.repl.hinfo2 }}

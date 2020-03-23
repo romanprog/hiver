@@ -72,7 +72,7 @@ func processSwarmPackages(hconf *hiverSpec) {
 		pkg.Tmpl()
 	}
 	for _, pkg := range pkgList {
-		pkg.BuildDockerfile()
+		pkg.Build()
 	}
 	for _, pkg := range pkgList {
 		if pkg.IsInstalled() {
