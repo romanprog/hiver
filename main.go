@@ -16,7 +16,7 @@ import (
 
 type hiverSpec struct {
 	StackName  string                            `yaml:"stack,omitempty"`
-	Registries []RegisrySpec                     `yaml:"registries,omitempty"`
+	Registries []RegistrySpec                    `yaml:"registries,omitempty"`
 	Packages   map[string]map[string]interface{} `yaml:"packages,omitempty"`
 
 	//	Nodes      []nodeLabelsSpec                  `yaml:"nodes,omitempty"`

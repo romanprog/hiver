@@ -4,15 +4,15 @@ import (
 	"fmt"
 )
 
-// RegisrySpec data for auth.
-type RegisrySpec struct {
+// RegistrySpec data for auth.
+type RegistrySpec struct {
 	URL  string `yaml:"url"`
 	User string `yaml:"user"`
 	Pass string `yaml:"pass"`
 }
 
 // Auth registry. Use docker login command.
-func (r *RegisrySpec) Auth() {
+func (r *RegistrySpec) Auth() {
 	err := commandExec(fmt.Sprintf("docker login %s -u %s -p %s", r.URL, r.User, r.Pass), r.Pass)
 	checkErr(err)
 }
