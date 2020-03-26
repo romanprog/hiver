@@ -3,7 +3,7 @@ stack: mystack
 packages:
   heloworld:
     dir: heloworld/
-    installed: true
+    installed: false
     tag: latest
     values:
       expose_port: 80

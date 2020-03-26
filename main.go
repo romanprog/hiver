@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
@@ -27,10 +28,10 @@ type hiverSpec struct {
 func (c *hiverSpec) Check() error {
 	//log.Debugf("Stack name check: '%s'", c.StackName)
 	if c.StackName == "" {
-		return errors.New("Stack name is empty. 'stack: stackname' field is required.")
+		return fmt.Errorf("stack name is empty. 'stack: stackname' field is required")
 	}
 	if len(c.Packages) == 0 {
-		return errors.New("Services count is 0. At least one is required.")
+		return errors.New("services count is 0. At least one is required")
 	}
 	return nil
 }
@@ -63,13 +64,13 @@ func main() {
 
 func processSwarmPackages(hconf *hiverSpec) {
 	var pkgList []*SwarmPackage
-	for name, _ := range hconf.Packages {
+	for name := range hconf.Packages {
 		if globalConfig.Packages.NeedServe(name) {
 			pkgList = append(pkgList, NewSwarmPackage(hconf, name))
 		}
 	}
 	for _, pkg := range pkgList {
-		pkg.Tmpl()
+		pkg.ExecuteTemplate()
 	}
 	for _, pkg := range pkgList {
 		pkg.Build()
@@ -95,7 +96,7 @@ func readAndTmplManifest(hconf *hiverSpec) {
 	commonTmp["commons"] = hconf.Commons
 	// Templated manifest data
 	var parsedFile bytes.Buffer
-	err := TmplApply(globalConfig.MainConfig, &parsedFile, &commonTmp)
+	err := ExecTemplate(globalConfig.MainConfig, &parsedFile, &commonTmp)
 	checkErr(err)
 
 	log.Debug("Parse hiver file.")

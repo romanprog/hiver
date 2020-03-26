@@ -1,0 +1,11 @@
+version: '3.6'
+services:
+  heloworld:
+    image: crccheck/hello-world:latest
+    deploy:
+      replicas: 1
+    ports:
+      - target: 8000
+        published: 80
+        protocol: tcp
+        mode: host

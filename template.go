@@ -13,20 +13,20 @@ import (
 var funcMap template.FuncMap
 var tmplTargetFileName string
 
-// Functions for use in the template.
+// TmplFunctionsMap - return list of functions for adding to template.
 func TmplFunctionsMap() template.FuncMap {
 	funcMap := template.FuncMap{
 		"envOrDef": envOrDefault,
 		"env":      env,
 		"fileMD5":  fileMD5,
-		"testfunc": testFunc,
 	}
 	return funcMap
 }
 
-// Apply template
-func TmplApply(filename string, result io.Writer, data interface{}) error {
-	
+// ExecTemplate apply template data 'data' to template file 'filename'.
+// Write result to 'result'.
+func ExecTemplate(filename string, result io.Writer, data interface{}) error {
+
 	// Set curent target file name for function fileMD5
 	tmplTargetFileName = filename
 	// Read template from file.
@@ -65,13 +65,13 @@ func env(key string) (string, error) {
 		log.Debugf("ENV variable %s. Value %s", key, envVal)
 		return envVal, nil
 	}
-	log.Debugf("Error. ENV variable %s undefined but needed.", key)
-	return string(""), fmt.Errorf("Error. ENV variable %s undefined but needed.", key)
+	log.Debugf("Error, ENV variable %s undefined but needed", key)
+	return string(""), fmt.Errorf("ENV variable %s undefined but needed", key)
 }
 
-// Function for template. Use: {{ fileMD5 "filename" size }}
+// fileMD5 is function for template. Use: {{ fileMD5 "filename" size }}
 // The path to the file should be relative to the template in which the function was called.
-// Return file md5 checksum trancated to size bytes.
+// Return file md5 checksum truncated to size bytes.
 func fileMD5(filename string, sz int) (string, error) {
 
 	fn := filepath.Join(filepath.Dir(tmplTargetFileName), filename)
@@ -87,8 +87,8 @@ func fileMD5(filename string, sz int) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)[0:sz]), nil
 }
 
-// Function for template. Use: {{ stringMD5 "string" size }}
-// Return string md5 checksum trancated to size bytes.
+// stringMD5 is function for template. Use: {{ stringMD5 "string" size }}
+// Return string md5 checksum truncated to size bytes.
 func stringMD5(data string, sz int) (string, error) {
 
 	h := md5.New()
@@ -97,8 +97,4 @@ func stringMD5(data string, sz int) (string, error) {
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil)[0:sz]), nil
-}
-
-func testFunc() (string, error) {
-	return filepath.Dir("../../" + tmplTargetFileName), nil
 }

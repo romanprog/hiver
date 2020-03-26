@@ -14,26 +14,26 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// State files names.
+// SwarmPackageState is type for state files names.
 type SwarmPackageState struct {
 	ManifestFile    string
 	ManifestTmpFile string
 }
 
-// Package build speck.
+// SwarmPackageBuildSpec is type for package build spec.
 type SwarmPackageBuildSpec struct {
 	Enabled   bool
 	Dir       string `yaml:"dir,omitempty"`
 	Type      string `yaml:"type,omitempty"`
 	Script    string `yaml:"script,omitempty"`
 	Args      string `yaml:"args,omitempty"`
-	Check     bool   `yaml:check,omitempty`
-	PushImage bool   `yaml:push,omitempty`
+	Check     bool   `yaml:"check,omitempty"`
+	PushImage bool   `yaml:"push,omitempty"`
 	Image     string
 	Tag       string
 }
 
-// Main package speck.
+// SwarmPackage is main package spec.
 type SwarmPackage struct {
 	configData     map[string]interface{} // Reference to parsed yaml struct.
 	stack          string                 // Stack name.
@@ -41,13 +41,13 @@ type SwarmPackage struct {
 	dir            string                 // Path to package.
 	readyForDeploy bool                   // Package is parsed and inited.
 	manifest       bytes.Buffer           // Manifest data (after templating).
-	installed      bool                   // Option 'intalled'.
-	build          SwarmPackageBuildSpec  // Buld spec.
+	installed      bool                   // Option 'installed'.
+	build          SwarmPackageBuildSpec  // Build spec.
 	state          SwarmPackageState      // State files.
 }
 
-// Parse and check build data.
-// Create build spec.
+// ParseBuild -
+// parse and check build data, create build spec.
 func ParseBuild(b interface{}, spec *SwarmPackage) {
 
 	if b == nil {
@@ -60,32 +60,31 @@ func ParseBuild(b interface{}, spec *SwarmPackage) {
 	checkErr(err)
 
 	// Check build spec.
-
 	switch spec.build.Type {
 	case "dockerfile":
 		if spec.configData["image"] == nil {
 			log.Fatalf("For build type 'dockerfile' field 'packages.%s.image' is requred.", spec.Name())
 		}
 		if spec.configData["tag"] == nil {
-			log.Fatalf("For build type 'dockerfile' field 'packages.%s.tag' is requred.", spec.Name())
+			log.Fatalf("For build type 'dockerfile' field 'packages.%s.tag' is required.", spec.Name())
 		}
 	case "script":
 		if spec.build.Script == "" {
-			log.Fatalf("For build type 'script' field 'packages.%s.build.script' is requred.", spec.Name())
+			log.Fatalf("For build type 'script' field 'packages.%s.build.script' is required.", spec.Name())
 		}
 	default:
-		log.Fatalf("Wrong build type '%s', suppurted only 'dockerfile|script'", spec.build.Type)
+		log.Fatalf("Wrong build type '%s', supported only 'dockerfile|script'", spec.build.Type)
 	}
 	spec.build.Image, _ = spec.configData["image"].(string)
 	spec.build.Tag, _ = spec.configData["tag"].(string)
 	if spec.configData["dir"] == nil {
-		log.Fatalf("For build option, field 'packages.%s.build.dir' is requred.", spec.Name())
+		log.Fatalf("For build option, field 'packages.%s.build.dir' is required.", spec.Name())
 	}
 	spec.build.Enabled = true
 	return
 }
 
-// Create, check and init package speck.
+// NewSwarmPackage create, check and init package speck.
 func NewSwarmPackage(hconf *hiverSpec, name string) *SwarmPackage {
 	pkg := new(SwarmPackage)
 	log.Debugf("Initing swarm package '%s', check configuration.", name)
@@ -131,16 +130,18 @@ func buildSwarmPackage(serviceName string, hstack *hiverSpec) {
 	return
 }
 
-func (pkg *SwarmPackage) Tmpl() {
+// ExecuteTemplate - execute app templates for package.
+// Save result to 'manifest' variable.
+func (pkg *SwarmPackage) ExecuteTemplate() {
 
 	if len(pkg.name) == 0 {
 		log.Panicf("Service unit is not inited. Use NewService()")
 	}
 
-	pkgFname := filepath.Join(pkg.dir, globalConfig.SwarmPkgTmplFile)
-	log.Debugf("Loading service tmplate: %s", pkgFname)
+	pkgFilename := filepath.Join(pkg.dir, globalConfig.SwarmPkgTmplFile)
+	log.Debugf("Loading service template: %s", pkgFilename)
 
-	tplFile, err := ioutil.ReadFile(pkgFname)
+	tplFile, err := ioutil.ReadFile(pkgFilename)
 	checkErr(err)
 
 	log.Infof("Templating service: %s", pkg.name)
@@ -153,7 +154,7 @@ func (pkg *SwarmPackage) Tmpl() {
 
 }
 
-// Deploy package to swarm.
+// DeploySwarm - deploy package to swarm.
 func (pkg *SwarmPackage) DeploySwarm() {
 	pkg.SaveStateTmp()
 	man, err := ioutil.ReadFile(pkg.state.ManifestFile)
@@ -173,7 +174,8 @@ func (pkg *SwarmPackage) DeploySwarm() {
 	pkg.SaveState()
 }
 
-// Get list of docker services from pakage manifest.
+// Delete - get list of docker services from package manifest
+// and delete them.
 func (pkg *SwarmPackage) Delete() {
 	pkg.SaveStateTmp()
 	list := getPkgServices(pkg.manifest.Bytes())
@@ -189,12 +191,14 @@ func (pkg *SwarmPackage) Delete() {
 	}
 }
 
+// Manifest return pkg manifest file (after applying templates) as string.
 func (pkg *SwarmPackage) Manifest() string {
 	res := pkg.manifest.String()
 	return res
 
 }
 
+// Build - check package, and run build of some "type".
 func (pkg *SwarmPackage) Build() {
 	if !pkg.installed {
 		log.Debug("Skip build for '%s', installed: false", pkg.name)
@@ -214,6 +218,8 @@ func (pkg *SwarmPackage) Build() {
 	}
 }
 
+// pkgBuildDockerfile - build package using dockerfile.
+// Push image to repo (uses image and tag options)
 func pkgBuildDockerfile(pkg *SwarmPackage) {
 
 	// Check if image exists in registry. (To skip extra builds)
@@ -230,16 +236,16 @@ func pkgBuildDockerfile(pkg *SwarmPackage) {
 			return
 		}
 	}
-
+	// Check dry-run option.
 	if globalConfig.DryRun {
 		log.Noticef("Dry run: build image: '%s:%s', build dir: '%s'", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
-		return
+	} else {
+		// Build image.
+		buildCommand := fmt.Sprintf("docker build -t %s:%s %s", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
+		log.Infof("Building package %s (dockerfile)", pkg.Name())
+		err := commandExec(buildCommand)
+		checkErr(err)
 	}
-	// Build image.
-	buildCommand := fmt.Sprintf("docker build -t %s:%s %s", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
-	log.Infof("Building package %s (dockerfile)", pkg.Name())
-	err := commandExec(buildCommand)
-	checkErr(err)
 	if pkg.build.PushImage {
 		return
 	}
@@ -248,26 +254,28 @@ func pkgBuildDockerfile(pkg *SwarmPackage) {
 		return
 	}
 	// Push to registry.
-	buildCommand = fmt.Sprintf("docker push %s:%s", pkg.build.Image, pkg.build.Tag)
+	buildCommand := fmt.Sprintf("docker push %s:%s", pkg.build.Image, pkg.build.Tag)
 	log.Infof("Pushing docker image '%s:%s'", pkg.build.Image, pkg.build.Tag)
-	err = commandExec(buildCommand)
+	err := commandExec(buildCommand)
 	checkErr(err)
-
 }
 
-func isFile(fname string) error {
-	info, err := os.Stat(fname)
+// isFile check is 'filename' is really file.
+func isFile(filename string) error {
+	info, err := os.Stat(filename)
 
 	if err != nil {
 		return err
 	}
 	if info.IsDir() {
-		return fmt.Errorf("'%s' is a directoty", fname)
+		return fmt.Errorf("'%s' is a directory", filename)
 	}
 
 	return nil
 }
 
+// pkgBuildDockerfile - build package using script.
+// Runs script with image and tag as first and second arguments.
 func pkhBuildScript(pkg *SwarmPackage) {
 
 	scriptFilename := filepath.Join(pkg.build.Dir, pkg.build.Script)
@@ -288,26 +296,33 @@ func pkhBuildScript(pkg *SwarmPackage) {
 
 }
 
+// Name - return package name.
 func (pkg *SwarmPackage) Name() string {
 	res := pkg.name
 	return res
 
 }
 
+// ManifestBuff - return package manifest as bytes buffer.
 func (pkg *SwarmPackage) ManifestBuff() *bytes.Buffer {
 	res := &pkg.manifest
 	return res
 
 }
 
+// SaveState - save package manifest (with all applied templates) to file as state.
+// Uses after successful deploy.
 func (pkg *SwarmPackage) SaveState() {
 	savePackageSatate(pkg, false)
 }
 
+// SaveStateTmp - save package manifest (with all applied templates) to tmp.
+// Uses for deploy ().
 func (pkg *SwarmPackage) SaveStateTmp() {
 	savePackageSatate(pkg, true)
 }
 
+// IsInstalled return option 'installed'.
 func (pkg *SwarmPackage) IsInstalled() bool {
 	return pkg.installed
 }
@@ -337,7 +352,7 @@ func getPkgServices(manifest []byte) []string {
 	}
 	err := yaml.Unmarshal(manifest, &slist)
 	res := []string{}
-	for sname, _ := range slist.Services {
+	for sname := range slist.Services {
 		res = append(res, sname)
 	}
 	checkErr(err)

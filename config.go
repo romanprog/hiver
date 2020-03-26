@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-// Configuration.
+// ConfSpec type for global config.
 type ConfSpec struct {
 	Packages         packagesList
 	Build            bool
@@ -61,17 +61,17 @@ var globalConfig ConfSpec
 
 func globalConfigInit() {
 	// Read flags.
-	flag.Var(&globalConfig.CommonsConfigs, "commons", "List of additional tmpl values files to alpply to main config.")
+	flag.Var(&globalConfig.CommonsConfigs, "c", "List of additional tmpl values files to alpply to main config.")
 	flag.Var(&globalConfig.Packages, "p", "List of swarm packages names to process. Default - all.")
 	flag.BoolVar(&globalConfig.Build, "build", false, "Build services images before deploy. Default: false")
 	flag.BoolVar(&globalConfig.Debug, "debug", false, "Turn on debug logging. Default: false")
 	flag.BoolVar(&globalConfig.DryRun, "dry-run", false, "Diffs output without any action. Default: false")
-	flag.StringVar(&globalConfig.MainConfig, "f", "", "YAML manifest filename.")
+	flag.StringVar(&globalConfig.MainConfig, "f", "hiver.yaml", "YAML manifest filename.")
 
 	// Configuration args.
 	flag.Parse()
 
-	// Set unconfigured values.
+	// Set values.
 	workdir, err := os.Getwd()
 
 	checkErr(err)
