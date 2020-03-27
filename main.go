@@ -9,11 +9,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// type nodeLabelsSpec struct {
-// 	Name   string            `yaml:"name,omitempty"`
-// 	Lables map[string]string `yaml:"labels,omitempty"`
-// }
-
 type hiverSpec struct {
 	StackName  string                            `yaml:"stack,omitempty"`
 	Registries []RegistrySpec                    `yaml:"registries,omitempty"`
@@ -31,38 +26,36 @@ func (c *hiverSpec) Check() error {
 		return fmt.Errorf("stack name is empty. 'stack: stackname' field is required")
 	}
 	if len(c.Packages) == 0 {
-		return errors.New("services count is 0. At least one is required")
+		return errors.New("packages count is 0. At least one is required")
 	}
 	return nil
 }
 
 // Parsed hiver manifest.
-var mainHstackConfig hiverSpec
+var mainHiverConfig hiverSpec
 
 func main() {
 	// Package main hiver.
 	globalConfigInit()
 	// Init logs module.
 	loggingInit()
-	readCommons(&mainHstackConfig)
-	prepareHiverManifest(&mainHstackConfig)
+	readCommons(&mainHiverConfig)
+	prepareHiverManifest(&mainHiverConfig)
 
 	// Check all required data in hiver configuration.
-	err := mainHstackConfig.Check()
+	err := mainHiverConfig.Check()
 
 	checkErr(err)
-	authRegistries(&mainHstackConfig)
-	processSwarmPackages(&mainHstackConfig)
-	//	tmplService("app1", &mainHstackConfig)
-	//parseYamlManifest()
+	authRegistries(&mainHiverConfig)
+	processSwarmPackages(&mainHiverConfig)
 
 }
 
-func processSwarmPackages(hconf *hiverSpec) {
+func processSwarmPackages(hConfig *hiverSpec) {
 	var pkgList []*SwarmPackage
-	for name := range hconf.Packages {
+	for name := range hConfig.Packages {
 		if globalConfig.Packages.NeedServe(name) {
-			pkgList = append(pkgList, NewSwarmPackage(hconf, name))
+			pkgList = append(pkgList, NewSwarmPackage(hConfig, name))
 		}
 	}
 	for _, pkg := range pkgList {
@@ -81,7 +74,7 @@ func processSwarmPackages(hconf *hiverSpec) {
 
 }
 
-func prepareHiverManifest(hconf *hiverSpec) {
+func prepareHiverManifest(hConfig *hiverSpec) {
 
 	log.Info("Reading and parsing hiver manifest.")
 	log.Debugf("Read hiver manifest from file: %s", globalConfig.MainConfig)
@@ -89,31 +82,31 @@ func prepareHiverManifest(hconf *hiverSpec) {
 	// Apply commons options.
 	log.Debug("Applying commons templating to hiver manifest.")
 	commonTmp := make(map[string]interface{})
-	commonTmp["commons"] = hconf.Commons
+	commonTmp["commons"] = hConfig.Commons
 	// Templated manifest data
 	var parsedFile bytes.Buffer
 	err := ExecTemplate(globalConfig.MainConfig, &parsedFile, &commonTmp)
 	checkErr(err)
 
 	log.Debug("Parse hiver file.")
-	err = yaml.UnmarshalStrict(parsedFile.Bytes(), &hconf)
+	err = yaml.UnmarshalStrict(parsedFile.Bytes(), &hConfig)
 	checkErr(err)
 	log.Debugf("Commons applied: \n%s", parsedFile.Bytes())
 
 }
 
 // Read files with common manifests. Parse yaml to main spec config.
-func readCommons(hconf *hiverSpec) {
+func readCommons(hConfig *hiverSpec) {
 	var commonsData [][]byte
 
-	for _, fname := range globalConfig.CommonsConfigs {
-		log.Debugf("Read common yaml: %s", fname)
-		tmpStr, err := ioutil.ReadFile(fname)
+	for _, FileName := range globalConfig.CommonsConfigs {
+		log.Debugf("Read common yaml: %s", FileName)
+		tmpStr, err := ioutil.ReadFile(FileName)
 		checkErr(err)
 		commonsData = append(commonsData, tmpStr)
 	}
 	for _, commonStr := range commonsData {
-		err := yaml.Unmarshal(commonStr, &hconf.Commons)
+		err := yaml.Unmarshal(commonStr, &hConfig.Commons)
 		checkErr(err)
 	}
 }

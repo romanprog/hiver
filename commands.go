@@ -9,18 +9,18 @@ import (
 )
 
 func stringHideSecrets(str string, secrets ...string) string {
-	hidenStr := str
+	hiddenStr := str
 	for _, s := range secrets {
-		hidenStr = strings.Replace(hidenStr, s, "***", -1)
+		hiddenStr = strings.Replace(hiddenStr, s, "***", -1)
 	}
-	return hidenStr
+	return hiddenStr
 }
 
 func commandExecCommon(command string, outputBuff io.Writer, errBuff io.Writer, secrets ...string) error {
-	hidenCommand := stringHideSecrets(command, secrets...)
+	hiddenCommand := stringHideSecrets(command, secrets...)
 
 	cmd := exec.Command("bash", "-c", command)
-	log.Debugf("Executing command \"%s\"", hidenCommand)
+	log.Debugf("Executing command \"%s\"", hiddenCommand)
 
 	cmd.Stdout = outputBuff
 	cmd.Stderr = errBuff

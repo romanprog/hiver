@@ -85,16 +85,16 @@ func ParseBuild(b interface{}, spec *SwarmPackage) {
 }
 
 // NewSwarmPackage create, check and init package speck.
-func NewSwarmPackage(hconf *hiverSpec, name string) *SwarmPackage {
+func NewSwarmPackage(hSpec *hiverSpec, name string) *SwarmPackage {
 	pkg := new(SwarmPackage)
 	log.Debugf("Initing swarm package '%s', check configuration.", name)
 	// Check if data for this name exists in main hiver manifest.
-	if _, ok := hconf.Packages[name]; !ok {
-		log.Fatalf("Can't create service unit. Service %s not found in hstack manifest.", name)
+	if _, ok := hSpec.Packages[name]; !ok {
+		log.Fatalf("Can't create service unit. Service %s not found in hiver manifest.", name)
 	}
 
-	pkg.configData = hconf.Packages[name]
-	pkg.configData["commons"] = hconf.Commons
+	pkg.configData = hSpec.Packages[name]
+	pkg.configData["commons"] = hSpec.Commons
 	pkg.name = name
 	pkg.state.ManifestFile = filepath.Join(".", globalConfig.DotDir, "packages", name+".yaml")
 	pkg.state.ManifestTmpFile = filepath.Join(".", globalConfig.DotDir, "packages", "_tmp_"+name+".yaml")
@@ -103,7 +103,7 @@ func NewSwarmPackage(hconf *hiverSpec, name string) *SwarmPackage {
 	err = os.MkdirAll(filepath.Dir(pkg.state.ManifestTmpFile), os.ModePerm)
 	checkErr(err)
 
-	pkg.stack = hconf.StackName
+	pkg.stack = hSpec.StackName
 
 	ok := false
 	pkg.installed, ok = pkg.configData["installed"].(bool)
@@ -125,7 +125,7 @@ func NewSwarmPackage(hconf *hiverSpec, name string) *SwarmPackage {
 
 }
 
-func buildSwarmPackage(serviceName string, hstack *hiverSpec) {
+func buildSwarmPackage(serviceName string, hStack *hiverSpec) {
 
 	return
 }
@@ -179,15 +179,15 @@ func (pkg *SwarmPackage) DeploySwarm() {
 func (pkg *SwarmPackage) Delete() {
 	pkg.SaveStateTmp()
 	list := getPkgServices(pkg.manifest.Bytes())
-	for _, sname := range list {
-		log.Infof("Deleting package '%s', service '%s'", pkg.Name(), sname)
-		deleteCommand := fmt.Sprintf("docker service rm %s_%s", pkg.stack, sname)
-		cmdres, cmderr, err := commandExecOutput(deleteCommand)
+	for _, packageName := range list {
+		log.Infof("Deleting package '%s', service '%s'", pkg.Name(), packageName)
+		deleteCommand := fmt.Sprintf("docker service rm %s_%s", pkg.stack, packageName)
+		commandStdout, commandStderr, err := commandExecOutput(deleteCommand)
 		if err != nil {
-			log.Debugf("Deleting output: %s; Error (it's normal for this operation) %s", cmdres, cmderr)
+			log.Debugf("Deleting output: %s; Error (it's normal for this operation) %s", commandStdout, commandStderr)
 			return
 		}
-		log.Debugf("Deleting output: %s", cmdres)
+		log.Debugf("Deleting output: %s", commandStdout)
 	}
 }
 
@@ -289,7 +289,7 @@ func pkhBuildScript(pkg *SwarmPackage) {
 		log.Debugf("Build command: \n%s", buildCommand)
 		return
 	}
-	log.Infof("Building packege '%s' (script run)", pkg.Name())
+	log.Infof("Building package '%s' (script run)", pkg.Name())
 	err = commandExec(buildCommand)
 	checkErr(err)
 
@@ -330,15 +330,15 @@ func savePackageSatate(pkg *SwarmPackage, tmp bool) {
 	if !pkg.readyForDeploy {
 		log.Panic("Can's save manifest to file. Use init and template first.")
 	}
-	var fname string
+	var fileName string
 	if tmp {
-		fname = pkg.state.ManifestTmpFile
+		fileName = pkg.state.ManifestTmpFile
 	} else {
-		fname = pkg.state.ManifestFile
+		fileName = pkg.state.ManifestFile
 	}
 	//	log.Debug("Creating state dir for packages. %s", filepath.Dir(pkg.SaveState()))
-	log.Debugf("Saving manifest to file '%s'", fname)
-	mf, err := os.Create(fname)
+	log.Debugf("Saving manifest to file '%s'", fileName)
+	mf, err := os.Create(fileName)
 	checkErr(err)
 	_, err = mf.Write(pkg.manifest.Bytes())
 	checkErr(err)
@@ -346,13 +346,13 @@ func savePackageSatate(pkg *SwarmPackage, tmp bool) {
 }
 
 func getPkgServices(manifest []byte) []string {
-	var slist struct {
+	var servicesList struct {
 		Services map[string]interface{} `yaml:"services"`
 	}
-	err := yaml.Unmarshal(manifest, &slist)
+	err := yaml.Unmarshal(manifest, &servicesList)
 	res := []string{}
-	for sname := range slist.Services {
-		res = append(res, sname)
+	for serviceName := range servicesList.Services {
+		res = append(res, serviceName)
 	}
 	checkErr(err)
 	return res
