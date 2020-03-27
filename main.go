@@ -36,7 +36,13 @@ var mainHiverConfig hiverSpec
 
 func main() {
 	// Package main hiver.
+	loggingInit()
+	testGit()
+
+	return
+
 	globalConfigInit()
+
 	// Init logs module.
 	loggingInit()
 	readCommons(&mainHiverConfig)
