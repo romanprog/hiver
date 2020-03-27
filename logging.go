@@ -6,7 +6,7 @@ import (
 	"github.com/op/go-logging"
 )
 
-// Loggign configuration
+// Logging configuration
 var log = logging.MustGetLogger("hiver")
 var logFormat = logging.MustStringFormatter(
 	`%{color}%{time:15:04:05.000} %{callpath} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,

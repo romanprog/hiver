@@ -63,7 +63,7 @@ func ParseBuild(b interface{}, spec *SwarmPackage) {
 	switch spec.build.Type {
 	case "dockerfile":
 		if spec.configData["image"] == nil {
-			log.Fatalf("For build type 'dockerfile' field 'packages.%s.image' is requred.", spec.Name())
+			log.Fatalf("For build type 'dockerfile' field 'packages.%s.image' is required.", spec.Name())
 		}
 		if spec.configData["tag"] == nil {
 			log.Fatalf("For build type 'dockerfile' field 'packages.%s.tag' is required.", spec.Name())
@@ -284,7 +284,6 @@ func pkhBuildScript(pkg *SwarmPackage) {
 
 	// Build image.
 	buildCommand := fmt.Sprintf("cd %s && ./%s %s %s %s", pkg.build.Dir, pkg.build.Script, pkg.build.Image, pkg.build.Tag, pkg.build.Args)
-	// log.Debugf("Build command: \n%s", buildCommand)
 	if globalConfig.DryRun {
 		log.Noticef("Dry run: build script: '%s', build dir: '%s'", pkg.build.Script, pkg.build.Dir)
 		log.Debugf("Build command: \n%s", buildCommand)

@@ -44,12 +44,8 @@ func main() {
 	globalConfigInit()
 	// Init logs module.
 	loggingInit()
-	// Init state (dotdir)
-	// globalStateInit()
-	//	colors()
-	//return
 	readCommons(&mainHstackConfig)
-	readAndTmplManifest(&mainHstackConfig)
+	prepareHiverManifest(&mainHstackConfig)
 
 	// Check all required data in hiver configuration.
 	err := mainHstackConfig.Check()
@@ -85,7 +81,7 @@ func processSwarmPackages(hconf *hiverSpec) {
 
 }
 
-func readAndTmplManifest(hconf *hiverSpec) {
+func prepareHiverManifest(hconf *hiverSpec) {
 
 	log.Info("Reading and parsing hiver manifest.")
 	log.Debugf("Read hiver manifest from file: %s", globalConfig.MainConfig)
@@ -102,7 +98,7 @@ func readAndTmplManifest(hconf *hiverSpec) {
 	log.Debug("Parse hiver file.")
 	err = yaml.UnmarshalStrict(parsedFile.Bytes(), &hconf)
 	checkErr(err)
-	log.Debugf("Commons applyed: \n%s", parsedFile.Bytes())
+	log.Debugf("Commons applied: \n%s", parsedFile.Bytes())
 
 }
 
