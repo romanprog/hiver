@@ -36,15 +36,11 @@ var mainHiverConfig hiverSpec
 
 func main() {
 	// Package main hiver.
-	loggingInit()
-	testGit()
-
-	return
-
 	globalConfigInit()
 
 	// Init logs module.
 	loggingInit()
+
 	readCommons(&mainHiverConfig)
 	prepareHiverManifest(&mainHiverConfig)
 
@@ -91,6 +87,7 @@ func prepareHiverManifest(hConfig *hiverSpec) {
 	commonTmp["commons"] = hConfig.Commons
 	// Templated manifest data
 	var parsedFile bytes.Buffer
+	log.Debugf("Manifest: %s", globalConfig.MainConfig)
 	err := ExecTemplate(globalConfig.MainConfig, &parsedFile, &commonTmp)
 	checkErr(err)
 

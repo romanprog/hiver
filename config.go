@@ -78,6 +78,6 @@ func globalConfigInit() {
 	globalConfig.WorkDir = workdir
 	globalConfig.DotDir = filepath.Join(".hiver")
 	log.Debug("Working dir: ", globalConfig.WorkDir)
-	globalConfig.SwarmPkgTmplFile = "main.tmpl"
+	globalConfig.SwarmPkgTmplFile = "main.yaml"
 
 }

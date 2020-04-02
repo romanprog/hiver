@@ -6,16 +6,27 @@ import (
 	"github.com/op/go-logging"
 )
 
-// Logging configuration
-var log = logging.MustGetLogger("hiver")
-var logFormat = logging.MustStringFormatter(
+var logFormatDefault = logging.MustStringFormatter(
+	`%{color}%{time:15:04:05.000} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+)
+var logFormatDebug = logging.MustStringFormatter(
 	`%{color}%{time:15:04:05.000} %{callpath} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
 )
 
-// loggingInit - initial function fot logging subsystem.
+// Logging configuration
+var log = logging.MustGetLogger("hiver")
+
+// loggingInit - initial function for logging subsystem.
 func loggingInit() {
 	// Create backend for logs output.
 	backend := logging.NewLogBackend(os.Stdout, "", 0)
+	var logFormat logging.Formatter
+	if globalConfig.Debug {
+		logFormat = logFormatDebug
+	} else {
+		logFormat = logFormatDefault
+	}
+
 	// Set log format.
 	backendFormatter := logging.NewBackendFormatter(backend, logFormat)
 	// Set the backends to be used and set logging level.

@@ -188,6 +188,7 @@ func (pkg *SwarmPackage) Delete() {
 			return
 		}
 		log.Debugf("Deleting output: %s", commandStdout)
+
 	}
 }
 
@@ -212,7 +213,7 @@ func (pkg *SwarmPackage) Build() {
 	case "dockerfile":
 		pkgBuildDockerfile(pkg)
 	case "script":
-		pkhBuildScript(pkg)
+		pkgBuildScript(pkg)
 	default:
 		return
 	}
@@ -276,7 +277,7 @@ func isFile(filename string) error {
 
 // pkgBuildDockerfile - build package using script.
 // Runs script with image and tag as first and second arguments.
-func pkhBuildScript(pkg *SwarmPackage) {
+func pkgBuildScript(pkg *SwarmPackage) {
 
 	scriptFilename := filepath.Join(pkg.build.Dir, pkg.build.Script)
 	err := isFile(scriptFilename)
