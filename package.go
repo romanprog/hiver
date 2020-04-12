@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	//	"strconv"
-	"text/template"
 
 	"gopkg.in/yaml.v2"
 )
@@ -97,10 +96,7 @@ func NewSwarmPackage(hSpec *hiverSpec, name string) *SwarmPackage {
 	pkg.configData["commons"] = hSpec.Commons
 	pkg.name = name
 	pkg.state.ManifestFile = filepath.Join(".", globalConfig.DotDir, "packages", name+".yaml")
-	pkg.state.ManifestTmpFile = filepath.Join(".", globalConfig.DotDir, "packages", "_tmp_"+name+".yaml")
 	err := os.MkdirAll(filepath.Dir(pkg.state.ManifestFile), os.ModePerm)
-	checkErr(err)
-	err = os.MkdirAll(filepath.Dir(pkg.state.ManifestTmpFile), os.ModePerm)
 	checkErr(err)
 
 	pkg.stack = hSpec.StackName
@@ -120,6 +116,7 @@ func NewSwarmPackage(hSpec *hiverSpec, name string) *SwarmPackage {
 	ParseBuild(pkg.configData["build"], pkg)
 
 	pkg.dir = pkgdir
+	pkg.state.ManifestTmpFile = filepath.Join(".", pkg.dir, "_tmp_"+name+".yaml")
 	log.Debugf("Package '%s' inited.", name)
 	return pkg
 
@@ -139,15 +136,10 @@ func (pkg *SwarmPackage) ExecuteTemplate() {
 	}
 
 	pkgFilename := filepath.Join(pkg.dir, globalConfig.SwarmPkgTmplFile)
-	log.Debugf("Loading service template: %s", pkgFilename)
 
-	tplFile, err := ioutil.ReadFile(pkgFilename)
+	log.Debugf("Templating service: %s", pkg.name)
+	err := ExecTemplate(pkgFilename, &pkg.manifest, pkg.configData)
 	checkErr(err)
-
-	log.Infof("Templating service: %s", pkg.name)
-	tmpl, err := template.New(pkg.name).Option("missingkey=error").Parse(string(tplFile))
-	checkErr(err)
-	err = tmpl.Execute(&pkg.manifest, pkg.configData)
 	log.Debugf("Service %s manifest after templating: \n%s", pkg.name, pkg.manifest.String())
 	checkErr(err)
 	pkg.readyForDeploy = true
@@ -157,6 +149,7 @@ func (pkg *SwarmPackage) ExecuteTemplate() {
 // DeploySwarm - deploy package to swarm.
 func (pkg *SwarmPackage) DeploySwarm() {
 	pkg.SaveStateTmp()
+	defer pkg.DeleteStateTmpl()
 	man, err := ioutil.ReadFile(pkg.state.ManifestFile)
 	diff, err := diffYamls(man, pkg.ManifestBuff().Bytes(), true)
 	checkErr(err)
@@ -251,7 +244,7 @@ func pkgBuildDockerfile(pkg *SwarmPackage) {
 		return
 	}
 	if globalConfig.DryRun {
-		log.Noticef("Dry run: push image: '%s:%s'", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
+		log.Noticef("Dry run: push image: '%s:%s'", pkg.build.Image, pkg.build.Tag)
 		return
 	}
 	// Push to registry.
@@ -320,6 +313,13 @@ func (pkg *SwarmPackage) SaveState() {
 // Uses for deploy ().
 func (pkg *SwarmPackage) SaveStateTmp() {
 	savePackageSatate(pkg, true)
+}
+
+// DeleteStateTmpl - remove tmp manifest.
+// Uses for deploy ().
+func (pkg *SwarmPackage) DeleteStateTmpl() error {
+	err := os.Remove(pkg.state.ManifestTmpFile)
+	return err
 }
 
 // IsInstalled return option 'installed'.
