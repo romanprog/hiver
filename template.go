@@ -106,10 +106,10 @@ func stringMD5(data string, sz int) (string, error) {
 // {{- range $val := Iterate 5 }}
 //   {{ $val }}
 // {{- end }}
-func Iterate(count *uint) []uint {
+func Iterate(count uint) []uint {
 	var i uint
 	var items []uint
-	for i = 0; i < (*count); i++ {
+	for i = 0; i < count; i++ {
 		items = append(items, i)
 	}
 	return items
