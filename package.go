@@ -173,6 +173,10 @@ func (pkg *SwarmPackage) Delete() {
 	pkg.SaveStateTmp()
 	list := getPkgServices(pkg.manifest.Bytes())
 	for _, packageName := range list {
+		if globalConfig.DryRun {
+			log.Noticef("Dry run: Package '%s', service '%s' will be deleted", pkg.Name(), packageName)
+			continue
+		}
 		log.Infof("Deleting package '%s', service '%s'", pkg.Name(), packageName)
 		deleteCommand := fmt.Sprintf("docker service rm %s_%s", pkg.stack, packageName)
 		commandStdout, commandStderr, err := commandExecOutput(deleteCommand)

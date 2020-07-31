@@ -19,6 +19,7 @@ func TmplFunctionsMap() template.FuncMap {
 		"envOrDef": envOrDefault,
 		"env":      env,
 		"fileMD5":  fileMD5,
+		"Iterate":  Iterate,
 	}
 	return funcMap
 }
@@ -97,4 +98,19 @@ func stringMD5(data string, sz int) (string, error) {
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil)[0:sz]), nil
+}
+
+// Iterate - function for template.
+// Implements a "like for loop" in templates.
+// Use:
+// {{- range $val := Iterate 5 }}
+//   {{ $val }}
+// {{- end }}
+func Iterate(count *uint) []uint {
+	var i uint
+	var items []uint
+	for i = 0; i < (*count); i++ {
+		items = append(items, i)
+	}
+	return items
 }
