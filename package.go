@@ -199,11 +199,11 @@ func (pkg *SwarmPackage) Manifest() string {
 // Build - check package, and run build of some "type".
 func (pkg *SwarmPackage) Build() {
 	if !pkg.installed {
-		log.Debug("Skip build for '%s', installed: false", pkg.name)
+		log.Debugf("Skip build for '%s', installed: false", pkg.name)
 		return
 	}
 	if !pkg.build.Enabled {
-		log.Debug("Skip build for package '%s'", pkg.name)
+		log.Debugf("Skip build for package '%s'", pkg.name)
 		return
 	}
 	switch pkg.build.Type {
