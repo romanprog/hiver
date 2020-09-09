@@ -5,7 +5,7 @@ set -eux
 if [ -z "${CMD_PATH+x}" ]; then
   export CMD_PATH=""
 fi
-set -x
+
 FILE_LIST="bin/hiver"
 GOOS="linux"
 GOARCH="amd64"
