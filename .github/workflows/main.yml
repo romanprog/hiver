@@ -20,7 +20,7 @@ jobs:
     - name: Build
       run: make
 
-      - name: Relese
+    - name: Relese
       run: cp .build/release.sh ./
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
