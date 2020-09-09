@@ -5,8 +5,8 @@ set -eux
 if [ -z "${CMD_PATH+x}" ]; then
   export CMD_PATH=""
 fi
-set -x
-FILE_LIST="hiver"
+
+FILE_LIST="bin/hiver"
 GOOS="linux"
 GOARCH="amd64"
 EVENT_DATA=$(cat $GITHUB_EVENT_PATH)
