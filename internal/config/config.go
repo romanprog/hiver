@@ -13,7 +13,6 @@ var log = logging.MustGetLogger("hiver")
 // ConfSpec type for global config.
 type ConfSpec struct {
 	Packages         packagesList
-	Build            bool
 	Debug            bool
 	MainConfig       string
 	DryRun           bool
@@ -60,14 +59,14 @@ func (i *packagesList) NeedServe(value string) bool {
 	return i.Find(value)
 }
 
-// Configuration args.
+// Global args.
 var Global ConfSpec
 
 func init() {
 	// Read flags.
 	flag.Var(&Global.CommonsConfigs, "c", "List of additional tmpl values files to alpply to main config.")
 	flag.Var(&Global.Packages, "p", "List of swarm packages names to process. Default - all.")
-	flag.BoolVar(&Global.Build, "build", false, "Build services images before deploy. Default: false")
+	// flag.BoolVar(&Global.Build, "build", false, "Build services images before deploy. Default: false")
 	flag.BoolVar(&Global.Debug, "debug", false, "Turn on debug logging. Default: false")
 	flag.BoolVar(&Global.DryRun, "dry-run", false, "Diffs output without any action. Default: false")
 	flag.StringVar(&Global.MainConfig, "f", "hiver.yaml", "YAML manifest filename.")

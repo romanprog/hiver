@@ -126,11 +126,6 @@ func NewSwarmPackage(hSpec *hiverSpec, name string) *SwarmPackage {
 
 }
 
-func buildSwarmPackage(serviceName string, hStack *hiverSpec) {
-
-	return
-}
-
 // ExecuteTemplate - execute app templates for package.
 // Save result to 'manifest' variable.
 func (pkg *SwarmPackage) ExecuteTemplate() {
