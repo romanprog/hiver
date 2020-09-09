@@ -1,4 +1,4 @@
-package main
+package runner
 
 import (
 	"bytes"
@@ -6,7 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/op/go-logging"
+	"github.com/romanprog/hiver/internal/config"
 )
+
+var log = logging.MustGetLogger("hiver")
 
 func stringHideSecrets(str string, secrets ...string) string {
 	hiddenStr := str
@@ -29,18 +34,18 @@ func commandExecCommon(command string, outputBuff io.Writer, errBuff io.Writer, 
 	return err
 }
 
-func commandExecOutput(command string, secrets ...string) (string, string, error) {
+func BashExecOutput(command string, secrets ...string) (string, string, error) {
 	output := &bytes.Buffer{}
 	runerr := &bytes.Buffer{}
 	err := commandExecCommon(command, output, runerr, secrets...)
 	return output.String(), runerr.String(), err
 }
 
-func commandExec(command string, secrets ...string) error {
+func BashExec(command string, secrets ...string) error {
 
 	var output io.Writer
 
-	if globalConfig.Debug {
+	if config.Global.Debug {
 		output = os.Stdin
 	}
 	runerr := &bytes.Buffer{}

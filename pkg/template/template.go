@@ -1,4 +1,4 @@
-package main
+package template
 
 import (
 	"crypto/md5"
@@ -8,10 +8,17 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+
+	"github.com/op/go-logging"
 )
 
 var funcMap template.FuncMap
 var tmplTargetFileName string
+var log = logging.MustGetLogger("hiver")
+
+func init() {
+	TmplFunctionsMap()
+}
 
 // TmplFunctionsMap - return list of functions for adding to template.
 func TmplFunctionsMap() template.FuncMap {
@@ -77,7 +84,9 @@ func fileMD5(filename string, sz int) (string, error) {
 
 	fn := filepath.Join(filepath.Dir(tmplTargetFileName), filename)
 	f, err := os.Open(fn)
-	checkErr(err)
+	if err != nil {
+		return "", err
+	}
 	defer f.Close()
 
 	h := md5.New()

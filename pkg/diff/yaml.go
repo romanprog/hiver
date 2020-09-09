@@ -1,4 +1,4 @@
-package main
+package diff
 
 import (
 	"fmt"
@@ -8,9 +8,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Unmarshal yaml data to struct and diff all elements.
+// Yamls compare two yamls anf show diff.
 // colored - turn on/off colored diff data.
-func diffYamls(yamlA []byte, yamlB []byte, colored bool) (string, error) {
+func Yamls(yamlA []byte, yamlB []byte, colored bool) (string, error) {
 	GreenColor := "%s"
 	RedColor := "%s"
 	if colored {
@@ -28,8 +28,8 @@ func diffYamls(yamlA []byte, yamlB []byte, colored bool) (string, error) {
 		return "", err
 	}
 	diffs := make([]string, 0)
-	
-	// Compare, join result to string and add colors. 
+
+	// Compare, join result to string and add colors.
 	for _, s := range strings.Split(pretty.Compare(yamlParsedA, yamlParsedB), "\n") {
 		switch {
 		case strings.HasPrefix(s, "+"):

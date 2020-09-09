@@ -1,9 +1,10 @@
-package main
+package logging
 
 import (
 	"os"
 
 	"github.com/op/go-logging"
+	"github.com/romanprog/hiver/internal/config"
 )
 
 var logFormatDefault = logging.MustStringFormatter(
@@ -13,15 +14,13 @@ var logFormatDebug = logging.MustStringFormatter(
 	`%{color}%{time:15:04:05.000} %{callpath} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
 )
 
-// Logging configuration
-var log = logging.MustGetLogger("hiver")
-
+// log - main logger util.
 // loggingInit - initial function for logging subsystem.
-func loggingInit() {
+func init() {
 	// Create backend for logs output.
 	backend := logging.NewLogBackend(os.Stdout, "", 0)
 	var logFormat logging.Formatter
-	if globalConfig.Debug {
+	if config.Global.Debug {
 		logFormat = logFormatDebug
 	} else {
 		logFormat = logFormatDefault
@@ -33,7 +32,7 @@ func loggingInit() {
 	backendFormatterLeveled := logging.AddModuleLevel(backendFormatter)
 	logging.SetBackend(backendFormatterLeveled)
 	// Set logging level.
-	if globalConfig.Debug {
+	if config.Global.Debug {
 		backendFormatterLeveled.SetLevel(logging.DEBUG, "hiver")
 	} else {
 		backendFormatterLeveled.SetLevel(logging.INFO, "hiver")

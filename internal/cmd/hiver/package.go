@@ -1,15 +1,19 @@
-package main
+package hiver
 
 import (
 	"bytes"
+
+	"github.com/romanprog/hiver/pkg/diff"
 
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	//	"strconv"
+	"github.com/romanprog/hiver/internal/runner"
+	"github.com/romanprog/hiver/pkg/template"
 
+	"github.com/romanprog/hiver/internal/config"
 	"gopkg.in/yaml.v2"
 )
 
@@ -95,7 +99,7 @@ func NewSwarmPackage(hSpec *hiverSpec, name string) *SwarmPackage {
 	pkg.configData = hSpec.Packages[name]
 	pkg.configData["commons"] = hSpec.Commons
 	pkg.name = name
-	pkg.state.ManifestFile = filepath.Join(".", globalConfig.DotDir, "packages", name+".yaml")
+	pkg.state.ManifestFile = filepath.Join(".", config.Global.DotDir, "packages", name+".yaml")
 	err := os.MkdirAll(filepath.Dir(pkg.state.ManifestFile), os.ModePerm)
 	checkErr(err)
 
@@ -135,10 +139,10 @@ func (pkg *SwarmPackage) ExecuteTemplate() {
 		log.Panicf("Service unit is not inited. Use NewService()")
 	}
 
-	pkgFilename := filepath.Join(pkg.dir, globalConfig.SwarmPkgTmplFile)
+	pkgFilename := filepath.Join(pkg.dir, config.Global.SwarmPkgTmplFile)
 
 	log.Debugf("Templating service: %s", pkg.name)
-	err := ExecTemplate(pkgFilename, &pkg.manifest, pkg.configData)
+	err := template.ExecTemplate(pkgFilename, &pkg.manifest, pkg.configData)
 	checkErr(err)
 	log.Debugf("Service %s manifest after templating: \n%s", pkg.name, pkg.manifest.String())
 	checkErr(err)
@@ -151,17 +155,17 @@ func (pkg *SwarmPackage) DeploySwarm() {
 	pkg.SaveStateTmp()
 	defer pkg.DeleteStateTmpl()
 	man, err := ioutil.ReadFile(pkg.state.ManifestFile)
-	diff, err := diffYamls(man, pkg.ManifestBuff().Bytes(), true)
+	diff, err := diff.Yamls(man, pkg.ManifestBuff().Bytes(), true)
 	checkErr(err)
 
-	if globalConfig.DryRun {
+	if config.Global.DryRun {
 		log.Noticef("Dry run: Package '%s', manifests diff: \n%s", pkg.name, diff)
 		return
 	}
 
 	deployCommand := fmt.Sprintf("docker stack deploy -c %s --with-registry-auth %s", pkg.state.ManifestTmpFile, pkg.stack)
 	log.Infof("Deploying manifest '%s'", pkg.Name())
-	err = commandExec(deployCommand)
+	err = runner.BashExec(deployCommand)
 
 	checkErr(err)
 	pkg.SaveState()
@@ -173,13 +177,13 @@ func (pkg *SwarmPackage) Delete() {
 	pkg.SaveStateTmp()
 	list := getPkgServices(pkg.manifest.Bytes())
 	for _, packageName := range list {
-		if globalConfig.DryRun {
+		if config.Global.DryRun {
 			log.Noticef("Dry run: Package '%s', service '%s' will be deleted", pkg.Name(), packageName)
 			continue
 		}
 		log.Infof("Deleting package '%s', service '%s'", pkg.Name(), packageName)
 		deleteCommand := fmt.Sprintf("docker service rm %s_%s", pkg.stack, packageName)
-		commandStdout, commandStderr, err := commandExecOutput(deleteCommand)
+		commandStdout, commandStderr, err := runner.BashExecOutput(deleteCommand)
 		if err != nil {
 			log.Debugf("Deleting output: %s; Error (it's normal for this operation) %s", commandStdout, commandStderr)
 			return
@@ -224,9 +228,9 @@ func pkgBuildDockerfile(pkg *SwarmPackage) {
 	if pkg.build.Check {
 		checkCommand := fmt.Sprintf("docker pull %s:%s", pkg.build.Image, pkg.build.Tag)
 		log.Infof("Pulling image '%s:%s'", pkg.build.Image, pkg.build.Tag)
-		err := commandExec(checkCommand)
+		err := runner.BashExec(checkCommand)
 		if err == nil {
-			if globalConfig.DryRun {
+			if config.Global.DryRun {
 				log.Noticef("Dry run: image exists: '%s:%s', skiping build.", pkg.build.Image, pkg.build.Tag)
 				return
 			}
@@ -235,26 +239,26 @@ func pkgBuildDockerfile(pkg *SwarmPackage) {
 		}
 	}
 	// Check dry-run option.
-	if globalConfig.DryRun {
+	if config.Global.DryRun {
 		log.Noticef("Dry run: build image: '%s:%s', build dir: '%s'", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
 	} else {
 		// Build image.
 		buildCommand := fmt.Sprintf("docker build -t %s:%s %s", pkg.build.Image, pkg.build.Tag, pkg.build.Dir)
 		log.Infof("Building package %s (dockerfile)", pkg.Name())
-		err := commandExec(buildCommand)
+		err := runner.BashExec(buildCommand)
 		checkErr(err)
 	}
 	if pkg.build.PushImage {
 		return
 	}
-	if globalConfig.DryRun {
+	if config.Global.DryRun {
 		log.Noticef("Dry run: push image: '%s:%s'", pkg.build.Image, pkg.build.Tag)
 		return
 	}
 	// Push to registry.
 	buildCommand := fmt.Sprintf("docker push %s:%s", pkg.build.Image, pkg.build.Tag)
 	log.Infof("Pushing docker image '%s:%s'", pkg.build.Image, pkg.build.Tag)
-	err := commandExec(buildCommand)
+	err := runner.BashExec(buildCommand)
 	checkErr(err)
 }
 
@@ -282,13 +286,13 @@ func pkgBuildScript(pkg *SwarmPackage) {
 
 	// Build image.
 	buildCommand := fmt.Sprintf("cd %s && ./%s %s %s %s", pkg.build.Dir, pkg.build.Script, pkg.build.Image, pkg.build.Tag, pkg.build.Args)
-	if globalConfig.DryRun {
+	if config.Global.DryRun {
 		log.Noticef("Dry run: build script: '%s', build dir: '%s'", pkg.build.Script, pkg.build.Dir)
 		log.Debugf("Build command: \n%s", buildCommand)
 		return
 	}
 	log.Infof("Building package '%s' (script run)", pkg.Name())
-	err = commandExec(buildCommand)
+	err = runner.BashExec(buildCommand)
 	checkErr(err)
 
 }

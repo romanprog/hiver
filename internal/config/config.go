@@ -1,10 +1,14 @@
-package main
+package config
 
 import (
 	"flag"
 	"os"
 	"path/filepath"
+
+	"github.com/op/go-logging"
 )
+
+var log = logging.MustGetLogger("hiver")
 
 // ConfSpec type for global config.
 type ConfSpec struct {
@@ -57,27 +61,27 @@ func (i *packagesList) NeedServe(value string) bool {
 }
 
 // Configuration args.
-var globalConfig ConfSpec
+var Global ConfSpec
 
-func globalConfigInit() {
+func init() {
 	// Read flags.
-	flag.Var(&globalConfig.CommonsConfigs, "c", "List of additional tmpl values files to alpply to main config.")
-	flag.Var(&globalConfig.Packages, "p", "List of swarm packages names to process. Default - all.")
-	flag.BoolVar(&globalConfig.Build, "build", false, "Build services images before deploy. Default: false")
-	flag.BoolVar(&globalConfig.Debug, "debug", false, "Turn on debug logging. Default: false")
-	flag.BoolVar(&globalConfig.DryRun, "dry-run", false, "Diffs output without any action. Default: false")
-	flag.StringVar(&globalConfig.MainConfig, "f", "hiver.yaml", "YAML manifest filename.")
+	flag.Var(&Global.CommonsConfigs, "c", "List of additional tmpl values files to alpply to main config.")
+	flag.Var(&Global.Packages, "p", "List of swarm packages names to process. Default - all.")
+	flag.BoolVar(&Global.Build, "build", false, "Build services images before deploy. Default: false")
+	flag.BoolVar(&Global.Debug, "debug", false, "Turn on debug logging. Default: false")
+	flag.BoolVar(&Global.DryRun, "dry-run", false, "Diffs output without any action. Default: false")
+	flag.StringVar(&Global.MainConfig, "f", "hiver.yaml", "YAML manifest filename.")
 
 	// Configuration args.
 	flag.Parse()
-
 	// Set values.
 	workdir, err := os.Getwd()
-
-	checkErr(err)
-	globalConfig.WorkDir = workdir
-	globalConfig.DotDir = filepath.Join(".hiver")
-	log.Debug("Working dir: ", globalConfig.WorkDir)
-	globalConfig.SwarmPkgTmplFile = "main.yaml"
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	Global.WorkDir = workdir
+	Global.DotDir = filepath.Join(".hiver")
+	log.Debug("Working dir: ", Global.WorkDir)
+	Global.SwarmPkgTmplFile = "main.yaml"
 
 }

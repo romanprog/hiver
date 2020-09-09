@@ -1,4 +1,4 @@
-package main
+package hiver
 
 import (
 	"bytes"
@@ -6,12 +6,18 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/op/go-logging"
+	"github.com/romanprog/hiver/internal/config"
+	"github.com/romanprog/hiver/internal/registry"
+	"github.com/romanprog/hiver/pkg/template"
 	"gopkg.in/yaml.v2"
 )
 
+var log = logging.MustGetLogger("hiver")
+
 type hiverSpec struct {
 	StackName  string                            `yaml:"stack,omitempty"`
-	Registries []RegistrySpec                    `yaml:"registries,omitempty"`
+	Registries []registry.Spec                   `yaml:"registries,omitempty"`
 	Packages   map[string]map[string]interface{} `yaml:"packages,omitempty"`
 
 	//	Nodes      []nodeLabelsSpec                  `yaml:"nodes,omitempty"`
@@ -34,12 +40,8 @@ func (c *hiverSpec) Check() error {
 // Parsed hiver manifest.
 var mainHiverConfig hiverSpec
 
-func main() {
-	// Package main hiver.
-	globalConfigInit()
-
-	// Init logs module.
-	loggingInit()
+// Start cmd.
+func Start() {
 
 	readCommons(&mainHiverConfig)
 	prepareHiverManifest(&mainHiverConfig)
@@ -48,7 +50,7 @@ func main() {
 	err := mainHiverConfig.Check()
 
 	checkErr(err)
-	authRegistries(&mainHiverConfig)
+	registry.AuthList(mainHiverConfig.Registries)
 	processSwarmPackages(&mainHiverConfig)
 
 }
@@ -56,7 +58,7 @@ func main() {
 func processSwarmPackages(hConfig *hiverSpec) {
 	var pkgList []*SwarmPackage
 	for name := range hConfig.Packages {
-		if globalConfig.Packages.NeedServe(name) {
+		if config.Global.Packages.NeedServe(name) {
 			pkgList = append(pkgList, NewSwarmPackage(hConfig, name))
 		}
 	}
@@ -79,7 +81,7 @@ func processSwarmPackages(hConfig *hiverSpec) {
 func prepareHiverManifest(hConfig *hiverSpec) {
 
 	log.Info("Reading and parsing hiver manifest.")
-	log.Debugf("Read hiver manifest from file: %s", globalConfig.MainConfig)
+	log.Debugf("Read hiver manifest from file: %s", config.Global.MainConfig)
 
 	// Apply commons options.
 	log.Debug("Applying commons templating to hiver manifest.")
@@ -87,8 +89,8 @@ func prepareHiverManifest(hConfig *hiverSpec) {
 	commonTmp["commons"] = hConfig.Commons
 	// Templated manifest data
 	var parsedFile bytes.Buffer
-	log.Debugf("Manifest: %s", globalConfig.MainConfig)
-	err := ExecTemplate(globalConfig.MainConfig, &parsedFile, &commonTmp)
+	log.Debugf("Manifest: %s", config.Global.MainConfig)
+	err := template.ExecTemplate(config.Global.MainConfig, &parsedFile, &commonTmp)
 	checkErr(err)
 
 	log.Debug("Parse hiver file.")
@@ -102,7 +104,7 @@ func prepareHiverManifest(hConfig *hiverSpec) {
 func readCommons(hConfig *hiverSpec) {
 	var commonsData [][]byte
 
-	for _, FileName := range globalConfig.CommonsConfigs {
+	for _, FileName := range config.Global.CommonsConfigs {
 		log.Debugf("Read common yaml: %s", FileName)
 		tmpStr, err := ioutil.ReadFile(FileName)
 		checkErr(err)
