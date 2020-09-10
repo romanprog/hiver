@@ -110,9 +110,9 @@ To add commons use option```-c commons1.yaml { -c commons2.yaml } ...```
 
 -p package1_name [ -p package2_name ] - run for specified packages only.
 
--dry-run - dry-run mode. Nothing will be deployed and built. Only show what needs do.    Also show packages diffs with previously applied packages configuration.
+--dry-run - dry-run mode. Nothing will be deployed and built. Only show what needs do.    Also show packages diffs with previously applied packages configuration.
 
--debug - full debug output.
+--debug - full debug output.
 ```
 
 ## States
@@ -121,5 +121,10 @@ After building, applying templates, and deploying the package, Hiver saves the l
 The states are saved only locally and are for informational purposes only. States do not affect the operations of thehiver.
 
 ## Logic diagram
+
+Command:
+```sh
+hiver -f hiver.yaml -c envs.yaml -c versions.yaml [--debug] [--dry-run]
+```
 
 ![Diag](docs/diag.png)
