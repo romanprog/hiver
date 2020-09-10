@@ -1,6 +1,6 @@
 version: '3.6'
 services:
-  heloworld:
+  helloworld:
     image: crccheck/hello-world:{{ .tag }}
     deploy:
       replicas: {{ .values.replicas.count }}
