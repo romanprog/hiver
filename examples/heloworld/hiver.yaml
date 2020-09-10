@@ -1,8 +1,8 @@
-stack: mystack
+stack: test
 
 packages:
-  heloworld:
-    dir: heloworld/
+  hello_world:
+    dir: hello_world/
     installed: false
     tag: latest
     values:

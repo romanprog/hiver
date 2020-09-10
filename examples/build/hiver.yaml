@@ -1,9 +1,9 @@
 stack: mystack
 
 registries:
-  url: registry.docker.io
-  user: artiloop
-  pass: {{ env DOCKER_PASS }}
+  - url: registry.docker.io
+    user: artiloop
+    pass: {{ env DOCKER_PASS }}
 
 packages:
   hinfo1:
