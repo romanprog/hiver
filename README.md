@@ -99,7 +99,7 @@ packages:
 
 User data in yaml format. Commons will be applied for templating main config and then for package configs.
 Usages ```{{ .commons.some.data }}``` (see examples for details).
-To add commons use option```sh-c commons1.yaml { -c commons2.yaml } ...```
+To add commons use option```-c commons1.yaml { -c commons2.yaml } ...```
 
 ## Options
 
